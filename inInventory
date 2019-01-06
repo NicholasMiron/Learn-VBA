@@ -1,0 +1,141 @@
+
+Sub InInventory()
+    
+    Application.ScreenUpdating = False
+    
+
+'Remove JPEG
+    Dim shp As Shape
+    For Each shp In ActiveSheet.Shapes
+        If Left(shp.Name, 22) = "RSXls2007_missing.jpeg" Then shp.Delete
+    Next shp
+    
+'Remove first three lines
+    If Range("A1") = " In Inventory Not Putaway - DC2 " Then
+        Rows("1:3").Select
+        Selection.Delete Shift = xlUp
+    End If
+    
+'Remove last three lines
+    lRow = lastRow(1)
+    If Cells(lastRow(1), "A").Value = "Grand Total Cases:" Then
+        Rows(lRow - 1).Select
+        Selection.Delete
+        Selection.Delete
+        Selection.Delete
+    End If
+    
+'Remove all rows with a lock code
+    If Range("A1").Value = "Inventory Lck Code" Then
+        Call lockCodeAutoFilter
+    End If
+    
+'Remove column lock code and sku attribute
+    If Range("A1").Value = "Inventory Lck Code" Then
+        Columns("A").Select
+        Selection.Delete
+    End If
+    If Range("D1").Value = "SKU Attribute" Then
+        Columns("D").Select
+        Selection.Delete
+    End If
+    
+'Remove all prepack7 and prepack8
+    Call removePrePack
+    
+'Remove all unwanted Usernames
+    Call userNameAutoFilter
+    
+'Copy range with dates within 48 hours of current date
+    Dim reportsWrk As Workbook
+    Set reportsWrk = ActiveWorkbook
+    Dim todayDate, oldDate As Date
+    Dim targetRow As Integer
+    Dim reportsWrkToInInvRng, reportsWrktoInInvHrsRng As Range
+    
+    'Get the target row where all dates after are less than 48 Hours
+    todayDate = Now
+    oldDate = DateAdd("d", -2, todayDate)
+    
+    For i = lastRow(1) To 2 Step -1
+        diff = DateDiff("d", Cells(i, "E").Value, todayDate)
+        If diff = 3 Then
+            targetRow = i
+            Exit For
+        End If
+    Next i
+    
+    Set reportsWrkToInInvRng = Range(Cells(lastRow(1), "H"), Cells(targetRow + 1, "A"))
+    Set reportsWrktoInInvHrsRng = Range("A2", Cells(targetRow, "H"))
+
+'Create inInventory Workbook
+    'Add in new workbook with header for inInventory
+    Call addNewWorkbook
+    Dim inInv As Workbook
+    Set inInv = ActiveWorkbook
+    
+    With reportsWrk
+        .Activate
+        reportsWrkToInInvRng.Select
+        Selection.Copy
+    End With
+    
+    With inInv
+        .Activate
+        .Sheets(1).Range("C2").PasteSpecial
+        .Sheets(1).Range("A1").Select
+    End With
+    
+    'Add in date and shift
+    For i = lastRow(3) To 2 Step -1
+        inInv.Sheets(1).Cells(i, "A").Value = Date
+        inInv.Sheets(1).Cells(i, "B").Value = "B"
+    Next i
+
+    Call addInTotalsLine
+    Call formatContent
+    Call previousLocationCheck
+    Call knownAssociates
+    
+    Columns("A:Y").EntireColumn.AutoFit
+
+'Create inInv48Hrs Workbook
+    Call addNewWorkbook
+    Dim inInvHrs As Workbook
+    Set inInvHrs = ActiveWorkbook
+    
+    With reportsWrk
+        .Activate
+        reportsWrktoInInvHrsRng.Select
+        Selection.Copy
+    End With
+    
+    With inInvHrs
+        .Activate
+        .Sheets(1).Range("C2").PasteSpecial
+        .Sheets(1).Range("A1").Select
+    End With
+        
+    'Add in date and shift
+    For i = lastRow(3) To 2 Step -1
+        inInvHrs.Sheets(1).Cells(i, "A").Value = Date
+        inInvHrs.Sheets(1).Cells(i, "B").Value = "B"
+    Next i
+    
+    Call addInTotalsLine
+    Call formatContent
+    Call previousLocationCheck
+    Call knownAssociates
+    
+    Columns("A:Y").EntireColumn.AutoFit
+    
+    Dim doSave As Integer
+    doSave = MsgBox("Would you like to save?", vbYesNo, "Save")
+    If doSave = 6 Then
+        inInv.SaveAs ("N:\SPA\adidas-group\IC\TFE_IC\DC2\IN INVENTORY-NOT PUTAWAY\InInvNotPutaway by Date\InInvNotPutaway " & Format(Now, "M-DD-YY") & ".xlsx")
+        inInvHrs.SaveAs ("N:\SPA\adidas-group\IC\TFE_IC\DC2\IN INVENTORY-NOT PUTAWAY\InInvNotPutaway 48Hrs\InInvNotPutaway 48 Hrs " & Format(Now(), "M-DD-YY") & ".xlsx")
+    End If
+    
+    Application.ScreenUpdating = True
+End Sub
+
