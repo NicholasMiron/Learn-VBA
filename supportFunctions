@@ -1,0 +1,310 @@
+Option Explicit
+
+'Find the last row
+Public Function lastRow(Col)
+    lastRow = Cells(Rows.Count(), Col).End(xlUp).Row
+End Function
+
+'Filter and remove all rows that dont have 2SORTER2 in them
+Public Function sorterAutoFilter()
+    Dim rng As Range
+    Set rng = Range("A:N")
+    
+    rng.AutoFilter Field:=6, Criteria1:="<>*2SORTER2*"
+    ActiveSheet.AutoFilter.Range.Offset(1, 0).Rows.SpecialCells(xlCellTypeVisible).Delete (xlShiftUp)
+    
+    Sheets(1).AutoFilterMode = False
+    
+End Function
+
+Public Function userNameAutoFilter()
+    Dim rng As Range
+    Set rng = Range("A:N")
+    
+    rng.AutoFilter Field:=4, Criteria1:="MOOREHOL"
+    ActiveSheet.AutoFilter.Range.Offset(1, 0).Rows.SpecialCells(xlCellTypeVisible).Delete (xlShiftUp)
+    
+    Sheets(1).AutoFilterMode = False
+End Function
+
+
+'Filter and remove all rows that have a lock code in them
+Public Function lockCodeAutoFilter()
+    Dim rng As Range
+    Set rng = Range("A:J")
+    
+    rng.AutoFilter Field:=1, Criteria1:="<>"
+    ActiveSheet.AutoFilter.Range.Offset(1, 0).Rows.SpecialCells(xlCellTypeVisible).Delete (xlShiftUp)
+    
+    Sheets(1).AutoFilterMode = False
+
+End Function
+
+'Remove all locations from prepack7 or prepack8
+Public Function removePrePack()
+    Dim rng As Range
+    Set rng = Range("A:I")
+    
+    rng.AutoFilter Field:=6, Criteria1:="2PREPACK7", Operator:=xlOr, Criteria2:="2PREPACK8"
+    ActiveSheet.AutoFilter.Range.Offset(1, 0).Rows.SpecialCells(xlCellTypeVisible).Delete (xlShiftUp)
+   
+    Sheets(1).AutoFilterMode = False
+End Function
+
+'Remove all Packwaves with yesterday's date
+Public Function removePkwaveForToday()
+    Dim dpkWavDate As Date
+    Dim pkWavDate As String
+    Dim j As Integer
+    
+    For j = lastRow(1) To 2 Step -1
+        pkWavDate = Mid(Cells(j, "H"), 1, 8)
+        
+        If Cells(j, "H").Value = True Then
+           dpkWavDate = DateSerial(CInt(Left(pkWavDate, 4)), CInt(Mid(pkWavDate, 5, 2)), CInt(Right(pkWavDate, 2)))
+        End If
+        If (Date = dpkWavDate + 1) Then
+            Rows(j).Select
+            Selection.Delete
+        End If
+    Next j
+End Function
+
+Public Function addNewWorkbook()
+    Dim aNewBook As Workbook
+    Set aNewBook = Workbooks.Add
+    
+    'Add in titles for the header
+    Range("A1").Value = "Date"
+    Range("B1").Value = "Shift"
+    Range("C1").Value = "Case Number"
+    Range("D1").Value = "SKU"
+    Range("E1").Value = "QTY"
+    Range("F1").Value = "User Name"
+    Range("G1").Value = "Modify Date"
+    Range("H1").Value = "Prev Loc"
+    Range("I1").Value = "Current" & vbLf & "Location"
+    Range("J1").Value = "Plt. ID"
+    Range("K1").Value = "Receiving"
+    Range("L1").Value = "Velocity"
+    Range("M1").Value = "Rework"
+    Range("N1").Value = "Hotpicks"
+    Range("O1").Value = "Mezz"
+    Range("P1").Value = "Case" & vbLf & "Break"
+    Range("Q1").Value = "JP Mezz"
+    Range("R1").Value = "JP Sorter"
+    Range("S1").Value = "JP IC"
+    Range("T1").Value = "Inflation"
+    Range("U1").Value = "Returns"
+    Range("V1").Value = "Main Street"
+    Range("W1").Value = "Putaway"
+    Range("X1").Value = "Other"
+    Range("Y1").Value = "COMMENTS"
+    
+    'Format the header
+    Dim headRng As Range
+    Set headRng = Range("A1:Y1")
+    
+    With headRng
+        .Font.Name = "Calibri Light"
+        .Font.Bold = True
+        .Font.Size = 12
+        .Interior.Color = RGB(255, 255, 102)
+        .Borders.TintAndShade = -1
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Borders(xlEdgeRight).LineStyle = xlContinuous
+        .Borders(xlEdgeRight).Weight = xlThin
+        .Borders(xlEdgeRight).Color = RGB(0, 0, 0)
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).Weight = xlThin
+        .Borders(xlEdgeBottom).Color = RGB(0, 0, 0)
+        .Borders(xlEdgeTop).LineStyle = xlContinuous
+        .Borders(xlEdgeTop).Weight = xlThin
+        .Borders(xlEdgeTop).Color = RGB(0, 0, 0)
+        .Borders(xlEdgeLeft).LineStyle = xlContinuous
+        .Borders(xlEdgeLeft).Weight = xlThin
+        .Borders(xlEdgeLeft).Color = RGB(0, 0, 0)
+        .RowHeight = 64.5
+    End With
+    
+    With ActiveWindow
+        .SplitColumn = 0
+        .SplitRow = 1
+    End With
+    
+    Columns("I").ColumnWidth = 9.57
+    ActiveWindow.FreezePanes = True
+    
+End Function
+
+'Add in the total lines row at bottom of page
+Public Function addInTotalsLine()
+    Cells(lastRow(1) + 1, "I").Value = "Totals:"
+    Cells(lastRow(1) + 1, "J").Value = lastRow(1) - 1
+    Cells(lastRow(1) + 1, "K").Value = "=SUM(K2:K" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "L").Value = "=SUM(L2:L" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "M").Value = "=SUM(M2:M" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "N").Value = "=SUM(N2:N" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "O").Value = "=SUM(O2:O" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "P").Value = "=SUM(P2:P" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "Q").Value = "=SUM(Q2:Q" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "R").Value = "=SUM(R2:R" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "S").Value = "=SUM(S2:S" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "T").Value = "=SUM(T2:T" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "U").Value = "=SUM(U2:U" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "V").Value = "=SUM(V2:V" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "W").Value = "=SUM(W2:W" & lastRow(1) & ")"
+    Cells(lastRow(1) + 1, "X").Value = "=SUM(X2:X" & lastRow(1) & ")"
+    
+    Dim totalsRng As Range
+    Set totalsRng = Range("I" & lastRow(9) & ":X" & lastRow(9) & "")
+    
+    With totalsRng
+        .Font.Bold = True
+        .Interior.Color = RGB(255, 255, 0)
+        .Borders.LineStyle = xlContinuous
+    End With
+    
+    'Add in running total of how many cases have been counted
+    Cells(lastRow(1) + 2, "H").Value = "DELETE THIS LINE"
+    Cells(lastRow(1) + 2, "I").Value = "Total Cases Counted"
+    Cells(lastRow(1) + 2, "J").Value = "=SUM(K" & lastRow(1) + 1 & ": X" & lastRow(1) + 1 & ")"
+    
+    Dim deleteLineRng As Range
+    Set deleteLineRng = Range("H" & lastRow(1) + 2 & ":J" & lastRow(9) & "")
+    
+    With deleteLineRng
+        .Font.Bold = True
+        .Interior.Color = RGB(200, 100, 100)
+        .Borders.LineStyle = xlContinuous
+    End With
+    
+End Function
+
+'Format main content in body of spreadsheet
+Public Function formatContent()
+    Dim bodyRng As Range
+    Set bodyRng = Range("A2:Y" & lastRow(1) & "")
+    
+    With bodyRng
+        .Font.Name = "Andale WT"
+        .Font.Size = 8
+        .Borders.LineStyle = xlContinuous
+    End With
+End Function
+
+'Add tally for known associates
+Public Function knownAssociates()
+    Dim i As Integer
+    Dim rework(), mezz(), mainStreet(), jackpotSorter(), casebreak(), returns(), receiving(), other()  As Variant
+    
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    '''''''''''''''LOGINS OF ASSOCIATES IN A DEPARTMENT''''''''''''''''
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'ADD A NAME:ADD COMMA AFTER LAST NAME LISTED IN DESIRED DEPARTMENT,
+    ''''''ENTER NAME SURRONDED BY QUOTES ("") INSIDE OF THE PARENTHESES
+    ''''''EX: ,"MIRONNIC"
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'REMOVE A NAME: FIND NAME TO REMOVE,
+    'DELETE NAME, QUOTES, AND COMMA SPERATING IT FROM OTHER NAMES
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    rework = Array("BROOKLEA", "ESTRASIL")
+    mezz = Array("THOMATIN", "KERNSJAS", "CHANDTHO", "GILBEJOS1", "SOKSOE", "PATELALP", "CARTEKEL", "WILLITOR", "THOMAJOS", "GREENMAL", "THOMPANG", "PETERMOR", "ELEKEUGO", "HANSOPAM")
+    mainStreet = Array("ACOSTMAT")
+    jackpotSorter = Array("VANGNUE", "KHAMSLAT", "GONZADAN")
+    casebreak = Array("BELTOMOE", "RAYJAS", "THOMAJUS")
+    returns = Array("RESENMIT", "FLUCKRAY", "AKBARSAK", "MANLYSON")
+    receiving = Array("BARBEREG")
+    other = Array("WILKIKOB")
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    '''''''''''''ONLY CHANGE ITEMS INSIDE THE PARENTHESES''''''''''''''
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    
+    
+    'Check names in all rows and fill in values if known
+    For i = 2 To lastRow(6) Step 1
+       'Check if name matches name in risidual
+        If IsInArray(Cells(i, "F").Value, rework) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "M").Value = 1
+        End If
+        'Check if name matches name in mezz
+        If IsInArray(Cells(i, "F").Value, mezz) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "O").Value = 1
+        End If
+        'Check if name matches name in mainStreet
+        If IsInArray(Cells(i, "F").Value, mainStreet) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "V").Value = 1
+        End If
+        'Check if name matches name in jackpot
+        If IsInArray(Cells(i, "F").Value, jackpotSorter) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "R").Value = 1
+        End If
+        'Check if name matches name in casebreak
+        If IsInArray(Cells(i, "F").Value, casebreak) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "G").Value = 1
+        End If
+        'Check if name matches name in returns
+        If IsInArray(Cells(i, "F").Value, returns) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "U").Value = 1
+        End If
+        'Check if name matches name in receiving
+        If IsInArray(Cells(i, "F").Value, receiving) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "K").Value = 1
+        End If
+        'Check if name matches name in other
+        If IsInArray(Cells(i, "F").Value, other) And Application.WorksheetFunction.Sum(Range(Cells(i, "K"), Cells(i, "X"))) = 0 Then
+            Cells(i, "X").Value = 1
+        End If
+    Next i
+End Function
+
+'Check to see if name is in array used in function knownAssociates()
+Public Function IsInArray(nameToBeFound As String, arr As Variant) As Boolean
+    Dim i As Integer
+    For i = LBound(arr) To UBound(arr)
+        If arr(i) = nameToBeFound Then
+            IsInArray = True
+            Exit Function
+        End If
+    Next i
+    IsInArray = False
+End Function
+
+'Check if previous location has a value, if it does tally relevant department
+Public Function previousLocationCheck()
+    Dim i As Integer
+    Dim firstThreeOfPrev As String
+    
+    'Check all the values
+    'Switch statement is probably the better way to do this
+    For i = 2 To lastRow(1) Step 1
+        'Check previous location for a main street location
+        If Left(Cells(i, "H"), 3) = "201" Or Left(Cells(i, "H"), 3) = "202" Or Left(Cells(i, "H"), 3) = "2IB" Or Left(Cells(i, "H"), 3) = "203" Or Left(Cells(i, "H"), 3) = "204" Then
+            Cells(i, "V").Value = 1
+        End If
+        'Check previous location for a mezz location
+        If Left(Cells(i, "H"), 3) = "223" Or Left(Cells(i, "H"), 3) = "224" Then
+            Cells(i, "L").Value = 1
+        End If
+        'Check previous location for a hotpicks location
+        If Left(Cells(i, "H"), 3) = "210" Then Cells(i, "N").Value = 1
+        'Check previous location for an inflation location
+        If Left(Cells(i, "H"), 3) = "211" Then Cells(i, "T").Value = 1
+        'Check previous location for a casebreak location
+        If Left(Cells(i, "H"), 3) = "2CS" Or Left(Cells(i, "H"), 3) = "2OP" Then Cells(i, "P").Value = 1
+        'Cehck previous location for a rework location
+        If Left(Cells(i, "H"), 3) = "2RW" Then Cells(i, "M").Value = 1
+        'Check previous location for a rework location
+        If Left(Cells(i, "H"), 3) = "2PR" Then Cells(i, "M").Value = 1
+        'Check previous location for a receving location
+        If Left(Cells(i, "H"), 3) = "2RC" Then Cells(i, "K").Value = 1
+        'Chcek previous location for a mezz location
+        If Left(Cells(i, "H"), 3) = "2MZ" Then Cells(i, "O").Value = 1
+        'Check previous location for a returns location
+        If Left(Cells(i, "H"), 3) = "2RT" Then Cells(i, "U").Value = 1
+        'Check prvious location for other location
+        If Left(Cells(i, "H"), 3) = "2QA" Then Cells(i, "X").Value = 1
+    Next i
+End Function
